@@ -33,7 +33,6 @@ export const CustomEditor = {
 };
 
 export const toHTML = (node) => {
-  console.log("toHTML", node);
   if (Text.isText(node)) {
     let string = escapeHTML(node.text);
     if (node.bold) {
@@ -55,4 +54,12 @@ export const toHTML = (node) => {
     default:
       return children;
   }
+};
+
+export const getHTML = (value) => {
+  let html = "";
+  value.forEach((n) => {
+    html += toHTML(n);
+  });
+  return html;
 };

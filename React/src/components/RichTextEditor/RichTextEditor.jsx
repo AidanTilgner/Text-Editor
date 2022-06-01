@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { createEditor } from "slate";
 import { Slate, Editable, withReact } from "slate-react";
-import { CustomEditor, toHTML } from "./Utils";
+import { CustomEditor, getHTML } from "./Utils";
 import "./RichTextEditor.css";
 
 // * Custom Elements
@@ -58,7 +58,7 @@ const RichTextEditor = () => {
         }}
         utils={{
           toHTML: () => {
-            const html = toHTML(editorValue[0]);
+            const html = getHTML(editorValue);
             console.log("HTML: ", html);
             return html;
           },
