@@ -15,6 +15,18 @@
   display: flex;
 }
 
+.editor__toolbar .section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 2px solid #eaeaea;
+  margin-right: 9px;
+}
+
+.editor__toolbar .section:last-child {
+  border-right: none;
+}
+
 .editor__toolbar button {
   border: none;
   display: flex;
@@ -25,8 +37,7 @@
   border-radius: 5px;
   padding: 5px;
   border: 1px solid #ddd;
-  font-size: 14px;
-  margin-right: 14px;
+  margin-right: 10px;
 }
 
 .editor__toolbar button:hover {
@@ -38,5 +49,5 @@
 }
 
 .editor__toolbar i {
-  font-size: 24px;
+  font-size: 20px;
 }

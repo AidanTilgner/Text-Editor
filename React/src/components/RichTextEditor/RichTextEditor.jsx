@@ -1,42 +1,27 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback } from "react";
 import { createEditor } from "slate";
 import { Slate, Editable, withReact } from "slate-react";
-import { CustomEditor, getHTML } from "./Utils";
+import { CustomEditor, getHTML, keyDetection, renderingOptions } from "./Utils";
+import { Leaf } from "./CustomElements";
+
 import "./RichTextEditor.css";
 
-// * Custom Elements
-import { CodeElement, Leaf } from "./CustomElements";
-
 const RichTextEditor = () => {
-  const [editor] = useState(() => withReact(createEditor()));
-
-  const initialValue = useMemo(
-    () =>
-      JSON.parse(localStorage.getItem("content")) || [
+  const initialValue = [
+    {
+      type: "paragraph",
+      children: [
         {
-          type: "paragraph",
-          children: [
-            {
-              text: "",
-            },
-          ],
+          text: "Some initial text so I don't have to keep typing.",
         },
       ],
-    []
-  );
+    },
+  ];
 
+  const [editor] = useState(() => withReact(createEditor()));
   const [editorValue, setEditorValue] = useState(initialValue);
 
-  const renderElement = useCallback((props) => {
-    switch (props.element.type) {
-      case "paragraph":
-        return <p {...props.attributes}>{props.children}</p>;
-      case "code":
-        return <CodeElement {...props} />;
-      default:
-        return <p {...props.attributes}>{props.children}</p>;
-    }
-  }, []);
+  const renderElement = useCallback((props) => renderingOptions(props), []);
 
   const renderLeaf = useCallback((props) => {
     return <Leaf {...props} />;
@@ -46,22 +31,9 @@ const RichTextEditor = () => {
     <div className="editor">
       <Toolbar
         editor={editor}
-        settings={{
-          bold: {
-            toggle: CustomEditor.toggleBoldMark,
-            isActive: CustomEditor.isBoldMarkActive,
-          },
-          code: {
-            toggle: CustomEditor.toggleCodeBlock,
-            isActive: CustomEditor.isCodeBlockActive,
-          },
-        }}
+        settings={CustomEditor}
         utils={{
-          toHTML: () => {
-            const html = getHTML(editorValue);
-            console.log("HTML: ", html);
-            return html;
-          },
+          toHTML: () => getHTML(editorValue),
         }}
       />
       <div className="editor__content">
@@ -69,14 +41,6 @@ const RichTextEditor = () => {
           editor={editor}
           value={initialValue}
           onChange={(value) => {
-            const isAstChange = editor.operations.some(
-              (op) => "selt_selection" !== op.type
-            );
-            if (isAstChange) {
-              // Save value to local storage
-              const content = JSON.stringify(value);
-              localStorage.setItem("content", content);
-            }
             setEditorValue(value);
           }}
         >
@@ -84,27 +48,7 @@ const RichTextEditor = () => {
             renderElement={renderElement}
             renderLeaf={renderLeaf}
             onKeyDown={(event) => {
-              if (event.key === "&") {
-                event.preventDefault();
-                editor.insertText("and");
-              }
-
-              if (event.ctrlKey) {
-                switch (event.key) {
-                  case "`":
-                    event.preventDefault();
-                    CustomEditor.toggleCodeBlock(editor);
-                    break;
-
-                  case "b":
-                    event.preventDefault();
-                    CustomEditor.toggleBoldMark(editor);
-                    break;
-
-                  default:
-                    break;
-                }
-              }
+              keyDetection(event, editor);
             }}
           />
         </Slate>
@@ -115,34 +59,109 @@ const RichTextEditor = () => {
 
 export default RichTextEditor;
 
-const Toolbar = ({ editor, settings: { bold, code }, utils: { toHTML } }) => {
+const Toolbar = ({
+  editor,
+  settings: {
+    bold,
+    code,
+    italic,
+    underline,
+    strikethrough,
+    alignLeft,
+    alignCenter,
+    alignRight,
+  },
+  utils: { toHTML },
+}) => {
   return (
     <div className="editor__toolbar">
-      <button
-        className={`editor__toolbar__button ${
-          bold.isActive(editor) && "editor__toolbar__active"
-        }`}
-        onMouseDown={(e) => {
-          e.preventDefault();
-          bold.toggle(editor);
-        }}
-      >
-        <i className="material-icons editor__toolbar__icon">format_bold</i>
-      </button>
-      <button
-        className={`editor__toolbar__button ${
-          code.isActive(editor) && "active"
-        }`}
-        onMouseDown={(e) => {
-          e.preventDefault();
-          code.toggle(editor);
-        }}
-      >
-        <i className="material-icons editor__toolbar__icon">code</i>
-      </button>
-      <button style={{ justifySelf: "end" }} onClick={toHTML}>
-        To HTML
-      </button>
+      <div className="section">
+        <button
+          onMouseDown={(e) => {
+            e.preventDefault();
+            bold.toggle(editor);
+          }}
+        >
+          <i className="material-icons">format_bold</i>
+        </button>
+        <button
+          onMouseDown={(e) => {
+            e.preventDefault();
+            italic.toggle(editor);
+          }}
+        >
+          <i className="material-icons">format_italic</i>
+        </button>
+        <button
+          onMouseDown={(e) => {
+            e.preventDefault();
+            underline.toggle(editor);
+          }}
+        >
+          <i className="material-icons">format_underline</i>
+        </button>
+        <button
+          onMouseDown={(e) => {
+            e.preventDefault();
+            strikethrough.toggle(editor);
+          }}
+        >
+          <i className="material-icons">strikethrough_s</i>
+        </button>
+      </div>
+      <div className="section">
+        <button
+          className={`${alignLeft.isActive(editor) && "active"}`}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            alignLeft.toggle(editor);
+          }}
+        >
+          <i className="material-icons editor__toolbar__icon">
+            format_align_left
+          </i>
+        </button>
+        <button
+          className={`${alignCenter.isActive(editor) && "active"}`}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            alignCenter.toggle(editor);
+          }}
+        >
+          <i className="material-icons editor__toolbar__icon">
+            format_align_center
+          </i>
+        </button>
+        <button
+          className={`${alignRight.isActive(editor) && "active"}`}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            alignRight.toggle(editor);
+          }}
+        >
+          <i className="material-icons editor__toolbar__icon">
+            format_align_right
+          </i>
+        </button>
+      </div>
+      <div className="section">
+        <button
+          className={`${code.isActive(editor) && "active"}`}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            code.toggle(editor);
+          }}
+        >
+          <i className="material-icons editor__toolbar__icon">code</i>
+        </button>
+        <button
+          onClick={(e) => {
+            console.log("To HTML: ", toHTML());
+          }}
+        >
+          To HTML
+        </button>
+      </div>
     </div>
   );
 };
