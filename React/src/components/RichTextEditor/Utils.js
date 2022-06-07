@@ -1,6 +1,6 @@
-import { Editor, Transforms, Text } from "slate";
+import { Editor, Transforms, Text, Path, Range } from "slate";
 import escapeHTML from "escape-html";
-import { CodeElement } from "./CustomElements";
+import { CodeElement, Link } from "./CustomElements";
 
 export const CustomEditor = {
   bold: {
@@ -143,6 +143,80 @@ export const CustomEditor = {
       Transforms.setNodes(editor, { type: isActive ? null : "blockquote" });
     },
   },
+  link: {
+    isActive(editor) {
+      const [match] = Editor.nodes(editor, {
+        match: (n) => n.type === "link",
+      });
+      return !!match;
+    },
+    node: (href, text) => {
+      return {
+        type: "link",
+        href,
+        children: [{ text }],
+      };
+    },
+    remove: (editor, opts = {}) => {
+      const { at } = opts;
+      if (at) {
+        Transforms.select(editor, at);
+      }
+      Transforms.unwrapNodes(editor, {
+        match: (n) => n.type === "link",
+        split: true,
+      });
+    },
+    insert: (editor, url) => {
+      if (!url) return;
+
+      const { selection } = editor;
+      const link = CustomEditor.link.node(url, url);
+
+      if (!!selection) {
+        const [parentNode, parentPath] = Editor.parent(
+          editor,
+          selection.focus?.path
+        );
+
+        // Remove the Link node if we're inserting a new link node inside of another
+        // link.
+        if (parentNode.type === "link") {
+          CustomEditor.link.remove(editor);
+        }
+
+        if (editor.isVoid(parentNode)) {
+          // Insert the new link after the void node
+          Transforms.insertNodes(
+            editor,
+            {
+              type: "paragraph",
+              children: [link],
+            },
+            {
+              at: Path.next(parentPath),
+              select: true,
+            }
+          );
+        } else if (Range.isCollapsed(selection)) {
+          // Insert the new link in our last known location
+          Transforms.insertNodes(editor, link, { select: true });
+        } else {
+          // Wrap the currently selected range of text into a Link
+          Transforms.wrapNodes(editor, link, { split: true });
+          // Remove the highlight and move the cursor to the end of the highlight
+          Transforms.collapse(editor, { edge: "end" });
+        }
+      } else {
+        // Insert the new link node at the bottom of the Editor when selection
+        // is falsey
+        Transforms.insertNodes(editor, {
+          type: "paragraph",
+          children: [link],
+        });
+      }
+    },
+  },
 };
 
 export const keyDetection = (event, editor) => {
@@ -230,6 +304,8 @@ export const toHTML = (node) => {
       return `<p style="text-align: center">${children}</p>`;
     case "align-right":
       return `<p style="text-align: right">${children}</p>`;
+    case "link":
+      return `<a href="${node.href}">${children}</a>`;
     default:
       return children;
   }
@@ -267,6 +343,8 @@ export const renderingOptions = (props) => {
           {props.children}
         </p>
       );
+    case "link":
+      return <Link {...props} />;
     default:
       return <p {...props.attributes}>{props.children}</p>;
   }

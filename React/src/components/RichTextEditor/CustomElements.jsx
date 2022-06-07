@@ -1,3 +1,7 @@
+import { useFocused, useSelected, useSlateStatic } from "slate-react";
+import { CustomEditor } from "./Utils";
+import "./RichTextEditor.css";
+
 export const CodeElement = (props) => {
   return (
     <p {...props.attributes}>
@@ -6,26 +10,51 @@ export const CodeElement = (props) => {
   );
 };
 
-export const Leaf = (props) => {
+export const Leaf = ({ leaf, attributes, children }) => {
   const styles = {
-    fontWeight: props.leaf.bold ? "bold" : "normal",
-    fontStyle: props.leaf.italic ? "italic" : "normal",
+    fontWeight: leaf.bold ? "bold" : "normal",
+    fontStyle: leaf.italic ? "italic" : "normal",
     textDecorationLine: (() => {
       let style = "";
-      if (props.leaf.underline) {
+      if (leaf.underline) {
         style += "underline ";
       }
-      if (props.leaf.strikethrough) {
+      if (leaf.strikethrough) {
         style += "line-through ";
       }
       return style;
     })(),
-    textAlign: props.leaf.align ? props.leaf.align : "left",
+    textAlign: leaf.align ? leaf.align : "left",
   };
 
   return (
-    <span {...props.attributes} style={styles}>
-      {props.children}
+    <span {...attributes} style={styles}>
+      {children}
+    </span>
+  );
+};
+
+export const Link = ({ attributes, element, children }) => {
+  const editor = useSlateStatic();
+  const selected = useSelected();
+  const focused = useFocused();
+
+  return (
+    <span className="element-link">
+      <a {...attributes} href={element.href}>
+        {children}
+      </a>
+      {selected && focused && (
+        <div className="popup" contentEditable={false}>
+          <a href={element.href} rel="noreferrer" target="_blank" style={{textDecoration: "none"}}>
+          <i className="material-icons">play_arrow</i>
+            {element.href}
+          </a>
+          <button onClick={() => CustomEditor.link.remove(editor)}>
+            <i className="material-icons">close</i>
+          </button>
+        </div>
+      )}
     </span>
   );
 };
