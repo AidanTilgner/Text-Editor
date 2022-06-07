@@ -158,13 +158,10 @@ export const CustomEditor = {
       };
     },
     remove: (editor, opts = {}) => {
-      const { at } = opts;
-      if (at) {
-        Transforms.select(editor, at);
-      }
       Transforms.unwrapNodes(editor, {
-        match: (n) => n.type === "link",
-        split: true,
+        ...opts,
+        match: (n) =>
+          !Editor.isEditor(n) && Element.isElement(n) && n.type === "link",
       });
     },
     insert: (editor, url) => {
@@ -265,6 +262,11 @@ export const keyDetection = (event, editor) => {
       case "r":
         event.preventDefault();
         CustomEditor.alignRight.toggle(editor);
+        break;
+
+      case "k":
+        event.preventDefault();
+        CustomEditor.link.insert(editor, window.prompt("Enter a link:"));
         break;
 
       default:
